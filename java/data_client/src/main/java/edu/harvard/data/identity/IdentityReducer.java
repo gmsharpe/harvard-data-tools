@@ -43,7 +43,7 @@ public class IdentityReducer<T> {
   public IdentityReducer() {
     this.hadoopUtils = new HadoopUtilities();
   }
-
+  
   /**
    * Perform initial setup tasks before running the reducer. This method should
    * be called by the {@code setup} method of the actual identity reducer Hadoop
@@ -140,22 +140,26 @@ public class IdentityReducer<T> {
         }
       }
       final String email = (String) value.getIdentityMap().get(IdentifierType.EmailAddress);
-      if (email != null) {
-        emails.add(email);
+      if (email != null && !email.isEmpty()) {
+          emails.add(email);
       }
       final String name = (String) value.getIdentityMap().get(IdentifierType.Name);
-      if (name != null) {
-        names.add(name);
+      if (name != null && !name.isEmpty() && name.length() > 1) {
+          names.add(name);
       }
     }
     outputResult("tempidentitymap", outputs, id.getFieldsAsList(format).toArray());
     for (final String email : emails) {
-      outputResult(IdentifierType.EmailAddress.getFieldName(), outputs,
-          id.get(IdentifierType.ResearchUUID), email);
+      if (email != null && !email.isEmpty()) {	
+    	  outputResult(IdentifierType.EmailAddress.getFieldName(), outputs,
+    	     id.get(IdentifierType.ResearchUUID), email);
+      }
     }
     for (final String name : names) {
-      outputResult(IdentifierType.Name.getFieldName(), outputs, id.get(IdentifierType.ResearchUUID),
-          name);
+      if (name != null && !name.isEmpty() && name.length() > 1) {
+          outputResult(IdentifierType.Name.getFieldName(), outputs, id.get(IdentifierType.ResearchUUID),
+             name);
+      }
     }
   }
 
@@ -168,5 +172,9 @@ public class IdentityReducer<T> {
     }
     final Text csvText = new Text(writer.toString().trim());
     outputs.write(outputName, csvText, NullWritable.get(), outputName + "/" + outputName);
+  }
+
+  public void cleanup(final MultipleOutputs<Text, NullWritable> outputs) throws IOException, InterruptedException {
+	  	outputs.close();
   }
 }

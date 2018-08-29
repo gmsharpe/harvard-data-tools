@@ -3,13 +3,16 @@ package edu.harvard.data;
 import java.text.SimpleDateFormat;
 
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.QuoteMode;
 
 public class FormatLibrary {
   public enum Format {
     DecompressedCanvasDataFlatFiles("decompressed_canvas"), CanvasDataFlatFiles(
         "canvas"), DecompressedExcel("decompressed_excel"), Excel("excel"), Matterhorn(
             "matterhorn"), DecompressedMatterhorn("decompressed_matterhorn"), CompressedInternal(
-                "compressed_internal"), DecompressedInternal("decompressed_internal");
+                "compressed_internal"), DecompressedInternal("decompressed_internal"), Mediasites(
+                    "mediasites"), DecompressedMediasites("decompressed_mediasites"), Sis(
+                    		"sis"), DecompressedSis("decompressed_sis"), DecompressedRest("decompressed_rest");
 
     private final String label;
 
@@ -35,10 +38,20 @@ public class FormatLibrary {
         return Matterhorn;
       case "decompressed_matterhorn":
         return DecompressedMatterhorn;
+      case "mediasites":
+    	return Mediasites;
+      case "decompressed_mediasites":
+    	return DecompressedMediasites;
+      case "sis":
+    	return Sis;
+      case "decompressed_sis":
+    	return DecompressedSis;    	
       case "compressed_internal":
         return CompressedInternal;
       case "decompressed_internal":
         return DecompressedInternal;
+      case "decompressed_rest":
+          return DecompressedRest;        
       default:
         return Format.valueOf(label);
       }
@@ -59,18 +72,30 @@ public class FormatLibrary {
       return createMatterhornFormat();
     case DecompressedMatterhorn:
       return createDecompressedMatterhornFormat();
+    case Mediasites:
+      return createMediasitesFormat();
+    case DecompressedMediasites:
+      return createDecompressedMediasitesFormat();
+    case Sis:
+      return createSisFormat();
+    case DecompressedSis:
+      return createDecompressedSisFormat();
     case CompressedInternal:
       return createCompressedInternalFormat();
     case DecompressedInternal:
       return createDecompressedInternalFormat();
+    case DecompressedRest:
+        return createDecompressedRestFormat();
     default:
       throw new RuntimeException("Unknown format " + format);
     }
   }
 
-  public static final String CANVAS_TIMESTAMP_FORMAT_STRING = "yyyy-MM-dd HH:mm:ss";
+  public static final String CANVAS_TIMESTAMP_FORMAT_STRING = "yyyy-MM-dd HH:mm:ss.SSS";
   public static final String CANVAS_DATE_FORMAT_STRING = "yyyy-MM-dd";
   public static final String MATTERHORN_DATE_FORMAT_STRING = "yyyy-MM-dd'T'HH:mm:ssXXX";
+  public static final String MEDIASITES_TIMESTAMP_FORMAT_STRING = "yyyy-MM-dd'T'HH:mm:ssXXXZ";
+  public static final String MEDIASITES_DATE_FORMAT_STRING = "yyyy-MM-dd'T'HH:mm:ss";
   public static final String LOCAL_DATE_FORMAT_STRING = "yyyy-MM-dd Z";
   public static final String JSON_DATE_FORMAT_STRING = "yyyy-MM-dd'T'HH:mm:ssZ";
 
@@ -78,10 +103,17 @@ public class FormatLibrary {
       .withNullString("\\N").withRecordSeparator("\n").withIgnoreSurroundingSpaces(false);
 
   private static final CSVFormat INTERNAL_CSV_FORMAT = CSVFormat.TDF.withQuote(null).withEscape('/')
-      .withNullString("\\N").withRecordSeparator("\n").withIgnoreSurroundingSpaces(false);
+	      .withNullString("\\N").withRecordSeparator("\n").withIgnoreSurroundingSpaces(false);
 
+  private static final CSVFormat INTERNAL_SIS_FORMAT = CSVFormat.TDF.withQuote('"').withEscape('/')
+	      .withNullString("null").withRecordSeparator("\n").withIgnoreSurroundingSpaces(false);  
+ 
+  private static final CSVFormat INTERNAL_TDF_FORMAT = CSVFormat.TDF.withQuote('"')
+	      .withNullString("\\N").withRecordSeparator("\n").withIgnoreSurroundingSpaces(false);  
+  
   private static final String CANVAS_FILE_ENCODING = "UTF-8";
   private static final String MATTERHORN_FILE_ENCODING = "UTF-8";
+  private static final String MEDIASITES_FILE_ENCODING = "UTF-8";
 
   private TableFormat createCanvasDataFlatFileFormat() {
     final TableFormat canvasFormat = new TableFormat(Format.CanvasDataFlatFiles);
@@ -146,7 +178,49 @@ public class FormatLibrary {
     format.setCompression(TableFormat.Compression.Gzip);
     return format;
   }
+  
+  private TableFormat createDecompressedMediasitesFormat() {
+	final TableFormat format = new TableFormat(Format.Mediasites);
+	format.setDateFormat(new SimpleDateFormat(MEDIASITES_DATE_FORMAT_STRING));
+	format.setTimestampFormat(new SimpleDateFormat(MEDIASITES_TIMESTAMP_FORMAT_STRING));
+	format.setIncludeHeaders(false);
+	format.setEncoding(MEDIASITES_FILE_ENCODING);
+	format.setCompression(TableFormat.Compression.None);
+	return format;
+  }
 
+  private TableFormat createMediasitesFormat() {
+	final TableFormat format = new TableFormat(Format.Mediasites);
+	format.setDateFormat(new SimpleDateFormat(MEDIASITES_DATE_FORMAT_STRING));
+	format.setTimestampFormat(new SimpleDateFormat(MEDIASITES_TIMESTAMP_FORMAT_STRING));
+	format.setIncludeHeaders(false);
+	format.setEncoding(MEDIASITES_FILE_ENCODING);
+	format.setCompression(TableFormat.Compression.Gzip);
+	return format;
+  }
+
+  private TableFormat createDecompressedSisFormat() {
+	final TableFormat format = new TableFormat(Format.DecompressedInternal);
+	format.setTimestampFormat(new SimpleDateFormat(CANVAS_TIMESTAMP_FORMAT_STRING));
+	format.setDateFormat(new SimpleDateFormat(CANVAS_DATE_FORMAT_STRING));
+	format.setIncludeHeaders(false);
+	format.setEncoding(CANVAS_FILE_ENCODING);
+	format.setCsvFormat(INTERNAL_SIS_FORMAT);
+	format.setCompression(TableFormat.Compression.None);
+	return format;
+  }
+
+  private TableFormat createSisFormat() {
+	final TableFormat format = new TableFormat(Format.Mediasites);
+	format.setDateFormat(new SimpleDateFormat(MEDIASITES_DATE_FORMAT_STRING));
+	format.setTimestampFormat(new SimpleDateFormat(MEDIASITES_TIMESTAMP_FORMAT_STRING));
+	format.setIncludeHeaders(false);
+	format.setEncoding(MEDIASITES_FILE_ENCODING);
+	format.setCompression(TableFormat.Compression.Gzip);
+	return format;
+  }
+  
+  
   private TableFormat createCompressedInternalFormat() {
     final TableFormat format = new TableFormat(Format.CompressedInternal);
     format.setTimestampFormat(new SimpleDateFormat(CANVAS_TIMESTAMP_FORMAT_STRING));
@@ -169,4 +243,15 @@ public class FormatLibrary {
     return format;
   }
 
+  private TableFormat createDecompressedRestFormat() {
+	    final TableFormat format = new TableFormat(Format.DecompressedRest);
+	    format.setTimestampFormat(new SimpleDateFormat(CANVAS_TIMESTAMP_FORMAT_STRING));
+	    format.setDateFormat(new SimpleDateFormat(CANVAS_DATE_FORMAT_STRING));
+	    format.setIncludeHeaders(false);
+	    format.setEncoding(CANVAS_FILE_ENCODING);
+	    format.setCsvFormat(INTERNAL_TDF_FORMAT);
+	    format.setCompression(TableFormat.Compression.None);
+	    return format;
+  }  
+  
 }

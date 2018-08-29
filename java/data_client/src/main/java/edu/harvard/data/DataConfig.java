@@ -16,6 +16,24 @@ import com.amazonaws.services.s3.model.S3ObjectId;
 import edu.harvard.data.FormatLibrary.Format;
 import edu.harvard.data.identity.IdentifierType;
 
+/**
+ * The DataConfig class is a central repository for all configuration settings
+ * across the system. Each configuration setting is represented in this class
+ * (or one of its subclasses) as a field, which is populated from some
+ * properties file stored on S3. The properties files are assumed to be
+ * formatted as Java key/value files.
+ *
+ * The class can be used in two ways. During early phases in the processing run
+ * a partial DataConfig object may be created. For example, during the initial
+ * bootstrap lambda function for a data set it is not yet known what type of
+ * infrastructure will be required, and so any settings regarding infrastructure
+ * will be null. Later in the run, it is expected that all configuration
+ * settings will be known, and so the complete config object may be created.
+ * These two cases can be distinguished by whether or not the data config is
+ * verified; an incomplete config object will not be verified, and so clients
+ * should be aware that some values may be null, while a complete config will be
+ * verified and should not contain null values.
+ */
 public class DataConfig {
 
   protected String paths;
@@ -26,6 +44,7 @@ public class DataConfig {
   private final IdentifierType mainIdentifier;
   private final String serverTimezone;
   private final FormatLibrary.Format pipelineFormat;
+  private final FormatLibrary.Format fulltextFormat;
 
   private final String dataPipelineRole;
   private final String dataPipelineResourceRoleArn;
@@ -83,6 +102,7 @@ public class DataConfig {
   private final String emrTaskBidPrice;
   private final String emrMaximumRetries;
   private final String emrAvailabilityZoneGroup;
+  private final String emrConfiguration;
 
   private final String phase0InstanceType;
   private final String phase0BidPrice;
@@ -131,7 +151,7 @@ public class DataConfig {
     this.identityRedshiftSchema = "pii";
     this.emrCodeDir = "/home/hadoop/code";
     this.emrLogDir = "/home/hadoop";
-    this.fullTextDir = "/home/hadoop/full_text";
+    this.fullTextDir = "/tmp/full_text";
     this.hdfsBase = "/phase_";
     this.hdfsVerifyBase = "/verify" + this.hdfsBase;
     this.ec2GitDir = "/home/ec2-user/harvard-data-tools";
@@ -146,6 +166,7 @@ public class DataConfig {
     this.dataSource = getConfigParameter("data_source", verify);
     this.datasetName = getConfigParameter("dataset_name", verify);
     this.pipelineFormat = Format.fromLabel(getConfigParameter("pipeline_format", verify));
+    this.fulltextFormat = Format.fromLabel(getConfigParameter("fulltext_format", verify));
     this.dataPipelineRole = getConfigParameter("data_pipeline_role", verify);
     this.dataPipelineResourceRoleArn = getConfigParameter("data_pipeline_resource_role_arn",
         verify);
@@ -199,6 +220,7 @@ public class DataConfig {
     this.emrCoreInstanceCount = getConfigParameter("emr_core_instance_count", verify);
     this.emrTaskInstanceCount = getConfigParameter("emr_task_instance_count", verify);
     this.emrAvailabilityZoneGroup = getConfigParameter("emr_availability_zone_group", verify);
+    this.emrConfiguration = getConfigParameter("emr_configuration", verify);
 
     this.phase0InstanceType = getConfigParameter("phase_0_instance_type", verify);
     this.phase0BidPrice = getConfigParameter("phase_0_bid_price", verify);
@@ -355,6 +377,10 @@ public class DataConfig {
 
   public String getEmrLogFile(final String stepId) {
     return emrLogDir + "/" + stepId + ".out";
+  }
+  
+  public String getEmrLogDir() {
+	return emrLogDir;
   }
 
   public String getDatasetName() {
@@ -601,6 +627,10 @@ public class DataConfig {
     return emrAvailabilityZoneGroup;
   }
 
+  public String getEmrConfiguration() {
+	  return emrConfiguration;
+  }
+  
   public String getLeaseDynamoTable() {
     return leaseDynamoTable;
   }
@@ -616,6 +646,10 @@ public class DataConfig {
   public FormatLibrary.Format getPipelineFormat() {
     return pipelineFormat;
   }
+
+  public FormatLibrary.Format getFulltextFormat() {
+	    return fulltextFormat;
+  }  
 
   public String getHdtMonitorUrl() {
     return hdtMonitorUrl;
@@ -646,7 +680,8 @@ public class DataConfig {
   }
 
   public String getIdentityOracleUrl() {
-    return "jdbc:oracle:thin:@"+ identityOracleServer + ":" + identityOraclePort + ":" + identityOracleSid;
+    return "jdbc:oracle:thin:@" + identityOracleServer + ":" + identityOraclePort + ":"
+        + identityOracleSid;
   }
 
   public String getIdentityOracleSchema() {
